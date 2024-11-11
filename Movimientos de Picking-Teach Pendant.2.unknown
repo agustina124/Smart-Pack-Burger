@@ -1,0 +1,68 @@
+#Este script NO debe correrse en python. Sino en el teach pendant ya que se encuentra en lenguaje URP.
+
+#Abrimos la conexion con el servidor
+BeforeStart
+  open≔socket_open("192.168.0.105", 65432) #Le pasamos como parametros el ID de la compu (el ID varia si te conectas por ethernet o wifi) y un puerto cualquiera que no este en uso.
+
+ 	while(open==False):
+   	    opensocket_open("192.168.0.20", 65432)
+        targetPos≔p[-0.9,0.9,0.2,0,3.14,-0.1]  # altura 20 cm, orientación fija
+end
+
+#Se le envia una consulta al servidor
+sendToServer'GET COUNT'
+socket_send_string(sendToServer)
+ 	
+    #se establece un counter con la cantidad de piezas econtradas
+
+    counter = socket_read_ascii_float(2) # solicita 2 valores, x e y
+ 	
+    #Chequeamos que el mensaje se haya recibido correctamente.
+    while(counter[0]!=2):
+   	    sleep(0.3)
+   	    counter≔socket_read_ascii_float(2)
+    end
+
+#Programa principal que recibe las coordenadas y lleva pieza por pieza a la bandeja.
+ 	while(counter[1]>1):
+	    socket_send_string("GET POS") #Le consultamos al servidor cual es a la coordenada que tiene que ir
+   	    receiveFromServ=socket_read_ascii_float(2) #Lee el valor devuelto
+		
+        while(receiveFromServ[0]!=2):
+            sleep(0.3)
+            receiveFromServ=socket_read_ascii_float(2)
+        end
+
+#Definimos la posición de la pieza considerando los valores recibidos.
+TargetPos=p[receiveFromServ[1],receiveFromServ[2],0.23,0,3.14,0] # altura 23cm
+#Movemos el robot al TargetPos
+movel(TargetPos)
+
+#Definimos la posición de la pieza considerando los valores recibidos.
+TargetPosMesa=p[receiveFromServ[1],receiveFromServ[2],0,0,3.14,0] # altura 0cm
+#Movemos el robot al TargetPosMesa
+movel(TargetPosMesa)
+
+#Seteamos la velocidad y la fuerza del movimiento del gripper
+rq_set_force(10) #Rango de 0 a 100.
+rq_set_speed(100) #Rango de 0 a 100.
+
+#Cerramos el gripper para sujetar la pieza hasta completar el movimiento.
+rq_close_and_wait()
+
+#Subimos la altura del robot para llevar la pieza a la bandeja.
+targetPosSubePieza=p[receiveFromServ[1],receiveFromServ[2],0.23,0,3.14,0]
+movel(targetPosSubePieza)
+
+#Movimiento a la posicion de la bandeja de producto terminado.
+targetPosBandeja=p[0.59,0.253,0.05,0,3.14,0] #La posicion de la bandeja la definimos nosotras.
+movel(targetPosBandeja)
+
+#Abrimos el gripper para soltar la pieza hasta completar el movimiento.
+rq_open_and_wait()
+
+#Subimos el brazo para ir a la proxima pieza con el fin de no chocar otras piezas.
+targetPosSubir=p[0.59,0.253,0.23,0,3.14,0]
+movel(targetPosSubir)
+
+end
